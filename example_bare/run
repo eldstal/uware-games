@@ -10,7 +10,7 @@ echo "Winner: $WINNER" > /dev/stderr
 
 cat << EOF
 {
-  "winner": $WINNER
+  "winner": $WINNER,
   "exit": 0
 }
 EOF
