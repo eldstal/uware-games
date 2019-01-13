@@ -25,8 +25,6 @@ class Cox:
     self.ouch_ticks = 20
     self.ticks_since_bounce = 0
 
-    self.time = 0
-
   def draw(self, window):
     sprite = self.sprite_normal
     if self.ticks_since_bounce <= self.ouch_ticks:
