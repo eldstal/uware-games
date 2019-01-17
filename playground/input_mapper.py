@@ -7,6 +7,7 @@
 #
 # call start() to begin handling input
 # call stop() to temporarily release devices
+# call start() again to open them again with the same configuration
 # call shutdown() to kill the background thread
 #
 # Analog controls get a value between -1.0 and 1.0
@@ -26,6 +27,8 @@ import json
 import sys
 import select
 import evdev
+import threading
+import time
 from fcntl import ioctl
 
 # This maps to a plugged-in Dual-shock 4 for player 1
@@ -82,7 +85,8 @@ DEFAULT_MAP = json.loads("""
    },
 
 	"console": {
-		"quit": "t"
+    "device": "keyboard",
+		"quit": "esc"
 	}
 }
 """)
@@ -92,6 +96,9 @@ class Joydev:
   def __init__(self, device):
     self.device = device
     self.fd = None
+
+    if (not os.path.exists(self.device)):
+      raise RuntimeError("Unable to find joystick device {}".format(self.device))
 
     # Maps from event number to axis/button name
     self.axis_map = {}
@@ -254,6 +261,19 @@ class Keyboard:
     if self.device is None:
       raise RuntimeError("Unable to locate a keyboard. Permissions to /dev/input/event* ?")
 
+    self.button_map = {}
+    # Lazy extraction of all the evdev keycodes
+    # If a key is named KEY_VIDEO_PREV, we will map it to "video_prev"
+    # This is less sensitive to portability issues, since the keyboard isn't really
+    # important other than for local testing.
+    # The basic keys (letters, space, bakspace, etc.) will have neatly predictable names.
+    # Some other useful ones are esc,enter,leftshift,leftctrl,left,up,pageup,f1
+    for code,name in evdev.ecodes.KEY.items():
+      if isinstance(name, str):
+        short_name = name.replace("KEY_", "").lower()
+        self.button_map[code] = short_name
+
+
   def start(self):
     if (self.evdev is not None): return
 
@@ -278,75 +298,126 @@ class Keyboard:
     for ev in events:
       if ev.type == evdev.ecodes.EV_KEY:
         # ev.val == 1 for press, 0 for release
-        # TODO: Map event code to key string
-        print(ev)
+        if ev.value == 0 or ev.value == 1:
+          if ev.code in self.button_map:
+            ret += [ (self.button_map[ev.code],ev.value) ]
+          else:
+            sys.stderr.write("WARNING: Unhandled keyboard input code {}".format(ev.code))
+    return ret
 
 
-# For each loaded input device, there's an object in DEVICES
-# For each device, there is a map of 
-# button/axis/key/whatever to a tuple of
-# (controller, event)
-#
-DEVICES = {}
-CONTROLLER_MAP = {}
+# A persistent thread that checks all input devices and
+# routes the proper events to the input handler
+class InputThread(threading.Thread):
 
+  def __init__(self, input_handler, game_conf):
+    threading.Thread.__init__(self)
+
+    # Thread management
+    self.do_shutdown = False
+    self.is_enabled = threading.Event()
+    self.is_enabled.clear()
+
+    self.input_handler = input_handler
+
+
+    # For each loaded input device, there's an object in DEVICES
+    # For each device, there is a map of 
+    # button/axis/key/whatever to a tuple of
+    # (controller, event)
+    #
+    self.DEVICES = {}
+    self.CONTROLLER_MAP = {}
+
+    self.DEVICES["keyboard"] = Keyboard()
+    self.CONTROLLER_MAP[self.DEVICES["keyboard"]] = {}
+
+    for controller in [ "controller1", "controller2", "console" ]:
+
+      if controller not in game_conf:
+        raise RuntimeError("Controller {} missing.".format(controller))
+
+      cmap = game_conf[controller]
+
+      if "device" not in cmap:
+        raise RuntimeError("Controller {} does not have a device specified.".format(controller))
+
+      device = cmap["device"]
+      if device not in self.DEVICES:
+        # Previously unused joystick device
+        self.DEVICES[device] = Joydev(device)
+        self.CONTROLLER_MAP[self.DEVICES[device]] = {}
+
+      for event,button in cmap.items():
+        if event == "device": continue
+        #sys.stderr.write("Mapping {} to ({}, {})\n".format(button, controller, event))
+        self.CONTROLLER_MAP[self.DEVICES[device]][button] = (controller, event)
+
+    sys.stderr.write("Spawning input thread\n")
+    self.start()
+
+
+  def resume(self):
+    for dev,handler in self.DEVICES.items():
+      handler.start()
+    self.is_enabled.set()
+
+  def pause(self):
+    self.is_enabled.clear()
+    for dev,handler in self.DEVICES.items():
+      handler.stop()
+
+  def shutdown(self):
+    self.do_shutdown = True
+    self.is_enabled.set()
+
+
+  def run(self):
+    while not self.do_shutdown:
+
+      # Allow the input to be paused
+      self.is_enabled.wait()
+      if self.do_shutdown: break
+
+      ready,_,_ = select.select([ handler for _,handler in self.DEVICES.items()] , [], [], 0.1)
+      if len(ready) > 0:
+        # Get control events like "ax1 moved to 0.32"
+        for handler in ready:
+          cmap = self.CONTROLLER_MAP[handler]
+          inputs = handler.get_event()
+
+          # Mape those controls to events like "axis-X1"
+          for control,value in inputs:
+            if control in cmap:
+              controller,event = cmap[control]
+              self.input_handler.on_input(controller, event, value)
+
+
+
+
+INPUT_THREAD = None
 
 
 def setup(input_handler, game_conf):
-  for controller in [ "controller1", "controller2", "console" ]:
-
-    if controller not in game_conf:
-      raise RuntimeError("Controller {} missing.".format(controller))
-
-    cmap = game_conf[controller]
-
-    if "device" not in cmap:
-      raise RuntimeError("Controller {} does not have a device specified.".format(controller))
-
-    # FIXME
-    DEVICES["keyboard"] = Keyboard()
-    CONTROLLER_MAP[DEVICES["keyboard"]] = {}
-
-    device = cmap["device"]
-    if (device == "keyboard"):
-      pass
-
-    elif device not in DEVICES:
-      DEVICES[device] = Joydev(device)
-      CONTROLLER_MAP[DEVICES[device]] = {}
-
-    for event,button in cmap.items():
-      if event == "device": continue
-
-      CONTROLLER_MAP[DEVICES[device]][button] = (controller, event)
-
-  pass
+  global INPUT_THREAD
+  if INPUT_THREAD is not None: return
+  if game_conf is None: game_conf = DEFAULT_MAP
+  INPUT_THREAD = InputThread(input_handler, game_conf)
 
 def start():
-  pass
+  global INPUT_THREAD
+  if INPUT_THREAD is None: return
+  INPUT_THREAD.resume()
 
 def stop():
-  pass
+  global INPUT_THREAD
+  if INPUT_THREAD is None: return
+  INPUT_THREAD.pause()
 
 def shutdown():
-  pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  global INPUT_THREAD
+  if INPUT_THREAD is None: return
+  INPUT_THREAD.shutdown()
 
 
 
@@ -359,22 +430,36 @@ def shutdown():
 def main():
   print("Running input mapper")
 
-  if (False):
-    # Open the joystick device.
-    fn = '/dev/input/js0'
-    print('Opening %s...' % fn)
-    dev = Joydev(fn)
-  else:
-    dev = Keyboard()
+  class Dummy:
+    def on_input(self, controller, event, value):
+      print("{} {} -> {}".format(controller, event, value))
+      if (event == "quit"):
+        shutdown()
 
-  dev.start()
 
-  while True:
-    if (dev.wait()):
-      events = dev.get_event()
-      if (events is not None):
-        for ev in events:
-          print(ev)
+  if (True):
+    dummy_handler = Dummy()
+    setup(dummy_handler, DEFAULT_MAP)
+    start()
+
+  elif (False):
+    if (False):
+      # Open the joystick device.
+      fn = '/dev/input/js0'
+      print('Opening %s...' % fn)
+      dev = Joydev(fn)
+    else:
+      dev = Keyboard()
+
+
+    dev.start()
+
+    while True:
+      if (dev.wait()):
+        events = dev.get_event()
+        if (events is not None):
+          for ev in events:
+            print(ev)
 
   return 0
 
