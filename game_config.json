@@ -1,0 +1,55 @@
+{
+   "controller1": {
+      "device": "/dev/input/js0",
+
+      "axis-X1": "ax0",
+      "axis-Y1": "ax1",
+      "axis-X2": "ax3",
+      "axis-Y2": "ax4",
+
+      "button-Y": "b2",
+      "button-X": "b3",
+      "button-B": "b1",
+      "button-A": "b0",
+
+      "dpad-up": "ax7-",
+      "dpad-down": "ax7+",
+      "dpad-left": "ax6-",
+      "dpad-right": "ax6+",
+
+      "bumper-L": "b4",
+      "bumper-R": "b5",
+      "trigger-L": "b6",
+      "trigger-R": "b7",
+
+      "L3": "b11",
+      "R3": "b12"
+   },
+
+   "controller2": {
+      "device": "keyboard",
+
+      "button-Y": "i",
+      "button-X": "j",
+      "button-B": "l",
+      "button-A": "k",
+
+      "dpad-up": "w",
+      "dpad-down": "s",
+      "dpad-left": "a",
+      "dpad-right": "d",
+
+      "bumper-L": "q",
+      "bumper-R": "e",
+      "trigger-L": "1",
+      "trigger-R": "3",
+
+      "L3": "z",
+      "R3": "x"
+   },
+
+	"console": {
+    "device": "keyboard",
+		"quit": "esc"
+	}
+}

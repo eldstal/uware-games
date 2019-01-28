@@ -386,6 +386,8 @@ class InputThread(threading.Thread):
           cmap = self.CONTROLLER_MAP[handler]
           inputs = handler.get_event()
 
+          if inputs is None: continue
+
           # Mape those controls to events like "axis-X1"
           for control,value in inputs:
             if control in cmap:
