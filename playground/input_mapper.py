@@ -211,20 +211,19 @@ class Joydev:
           elif (fvalue < -0.75): discrete = -1
           elif (fvalue < 0.1 and fvalue > -0.1): discrete = 0
 
-          # If the axis moved enough, make it either a button press
+          # If the axis moved enough, make it either a button press or release
           if (discrete != self.axis_discrete[ax_name]):
 
-            if (self.axis_discrete[ax_name] == 0):
-              if (discrete == 1):
-                ret += [ (ax_name+"+", 1) ]   # Pressed
-              if (discrete == -1):
-                ret += [ (ax_name+"-", 1) ]   # Pressed
+            if (discrete == 1):
+              ret += [ (ax_name+"+", 1) ]   # Pressed
+            elif (discrete == -1):
+              ret += [ (ax_name+"-", 1) ]   # Pressed
+            else:
+              if (self.axis_discrete[ax_name] == 1):
+                ret += [ (ax_name+"+", 0) ]   # Released
 
-            if (self.axis_discrete[ax_name] == 1):
-              ret += [ (ax_name+"+", 0) ]   # Released
-
-            if (self.axis_discrete[ax_name] == -1):
-              ret += [ (ax_name+"-", 0) ]   # Released
+              if (self.axis_discrete[ax_name] == -1):
+                ret += [ (ax_name+"-", 0) ]   # Released
 
             self.axis_discrete[ax_name] = discrete
 

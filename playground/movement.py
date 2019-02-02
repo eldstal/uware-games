@@ -54,25 +54,46 @@ class ColoredCox:
 class Player:
   def __init__(self, sprite):
     self.sprite = sprite
+
+    #
+    # Instantaneous state
+    #
     self.x = 0
     self.y = 0
 
     self.vx = 0
     self.vy = 0
 
-    self.ay = -3    # Gravity
-
-    self.vx_max = 10
-    self.vy_jump = 10
-
-    self.jumping = False
-    self.jump_strength = 0
-    self.jump_strength_max = 10   # Frames/ticks of jump push
+    self.vx_target = 0    # When accelerating, this is the target velocity
 
     self.bump_up    = False
     self.bump_down  = False
     self.bump_left  = False
     self.bump_right = False
+
+    self.jumping = False
+    self.jump_strength = 0
+
+
+    #
+    # Static parameters (tuning the player's movement
+    #
+
+    self.ay = -2.5        # Gravity
+    self.ax_move = 8    # Run acceleration
+    self.ax_stop = 3    # Ground friction
+    self.ax_move_air = 4 # Air control
+    self.ax_stop_air = 1 # Stopping ability in air
+
+    self.vx_max = 14
+    self.vy_jump = 12
+    self.jump_strength_max = 10   # Frames/ticks of jump push
+
+
+  def _clamp(self, v, mn,mx):
+    v = max(v, mn)
+    v = min(v, mx)
+    return v
 
   def _jump(self):
     # Player has held long enough for a maximum jump
@@ -82,6 +103,42 @@ class Player:
     if (self.jumping):
       self.jump_strength -= 1
       self.vy = self.vy_jump
+
+  def _move(self):
+    # Max change in velocity
+    dv = self.vx_target - self.vx
+
+    # Directions
+    dir_x = math.copysign(1, self.vx)
+    dir_target = math.copysign(1, self.vx_target)
+    dir_dv = math.copysign(1, dv)
+
+    # Retardation, either due to stopping
+    # or turning around
+    is_decrease = self.vx != 0 and dir_dv != dir_x
+
+    # The acceleration we apply this tick
+    ax = 0
+
+    if is_decrease:
+      if self.bump_down:
+        # Apply ground friction to slow down
+        ax = self.ax_stop
+      else:
+        ax = self.ax_stop_air
+
+    else:
+      if self.bump_down:
+        # Accelerate toward target speed
+        ax = self.ax_move
+      else:
+        ax = self.ax_move_air
+
+    # Clamp to prevent overshoot
+    ax = dir_dv * min(ax, abs(dv))
+
+    self.vx += ax
+    self.vx = self._clamp(self.vx, -self.vx_max, self.vx_max)
 
   def _collide(self):
 
@@ -110,6 +167,7 @@ class Player:
       self.vy += self.ay
 
     self._jump()
+    self._move()
     self._collide()
     self._bump()
 
@@ -124,13 +182,8 @@ class Player:
   # value is -1 (full left) to 1 (full right)
   # 0 stops.
   def move(self, value):
-    # If we've switched directions, snap to 0 first
-    if math.copysign(1, value) != math.copysign(1, self.vx):
-      self.vx = 0
-
-    # Accelerate toward value*vx_max
     target_speed = value * self.vx_max
-    self.vx = target_speed
+    self.vx_target = target_speed
 
   def jump(self, active):
     # Abort a jump early
