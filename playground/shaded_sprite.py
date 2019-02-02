@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-
 from PIL import Image
 import pyglet
 from pyglet.gl import *
 
 # Return a pyglet image with just the plain color
-def pil_to_pyglet(pil_image):
+def _pil_to_pyglet(pil_image):
   w,h = pil_image.size
   return pyglet.image.ImageData(w, h, 'RGBA', pil_image.tobytes(), pitch=-4*w)
 
@@ -25,40 +23,30 @@ def shaded_sprite(fg_sprite, bg_mask, bg_color):
 
   # Add the foreground on top of the sheet
   sprite = Image.alpha_composite(sprite, fg_sprite)
-  return pil_to_pyglet(sprite)
+  return _pil_to_pyglet(sprite)
 
 
-class ColoredCox:
-  def __init__(self, color, x=20, y=20):
-    sprite_normal = Image.open("sprites/player_fg_normal.png")
-    mask_normal = Image.open("sprites/player_bg_normal.png")
-
+# Provide PIL image
+class ColoredSprite:
+  def __init__(self, sprite_normal, mask_normal, color):
     self.tex = shaded_sprite(sprite_normal, mask_normal, color)
 
-    self.x = x
-    self.y = y
+    self.width = self.tex.width
+    self.height = self.tex.width
 
-    self.w = self.tex.width
-    self.h = self.tex.width
-
-  def draw(self, window):
+  def draw(self, window, x, y):
     # Enable alpha, so transparent sprites work
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-    self.tex.blit(self.x, self.y)
+    self.tex.blit(x, y)
 
 
+class ColoredCox(ColoredSprite):
+  def __init__(self, color):
+    sprite_normal = Image.open("sprites/player_fg_normal.png")
+    mask_normal = Image.open("sprites/player_bg_normal.png")
+    ColoredSprite.__init__(self,
+                           sprite_normal,
+                           mask_normal,
+                           color)
 
-window = pyglet.window.Window()
-
-player_1 = ColoredCox((0xce, 0x39, 0x10, 255), 20, 20)
-player_2 = ColoredCox((0xef, 0xef, 0x32, 255), 50, 20)
-
-@window.event
-def on_draw():
-  window.clear()
-
-  player_1.draw(window)
-  player_2.draw(window)
-
-pyglet.app.run()
