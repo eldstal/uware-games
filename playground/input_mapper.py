@@ -35,6 +35,7 @@ from fcntl import ioctl
 # and the keyboard for player 2.
 DEFAULT_MAP = json.loads("""
 {
+
    "controller1": {
       "device": "/dev/input/js0",
 

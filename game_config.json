@@ -1,5 +1,28 @@
 {
+
    "controller1": {
+      "device": "keyboard",
+
+      "button-Y": "i",
+      "button-X": "j",
+      "button-B": "l",
+      "button-A": "k",
+
+      "dpad-up": "w",
+      "dpad-down": "s",
+      "dpad-left": "a",
+      "dpad-right": "d",
+
+      "bumper-L": "q",
+      "bumper-R": "e",
+      "trigger-L": "1",
+      "trigger-R": "3",
+
+      "L3": "z",
+      "R3": "x"
+   },
+
+   "controller3": {
       "device": "/dev/input/js0",
 
       "axis-X1": "ax0",
@@ -29,23 +52,23 @@
    "controller2": {
       "device": "keyboard",
 
-      "button-Y": "i",
-      "button-X": "j",
-      "button-B": "l",
-      "button-A": "k",
+      "button-Y": "v",
+      "button-X": "c",
+      "button-B": "x",
+      "button-A": "z",
 
-      "dpad-up": "w",
-      "dpad-down": "s",
-      "dpad-left": "a",
-      "dpad-right": "d",
+      "dpad-up": "up",
+      "dpad-down": "down",
+      "dpad-left": "left",
+      "dpad-right": "right",
 
-      "bumper-L": "q",
-      "bumper-R": "e",
-      "trigger-L": "1",
-      "trigger-R": "3",
+      "bumper-L": "PageUp",
+      "bumper-R": "PageDown",
+      "trigger-L": ",",
+      "trigger-R": ".",
 
-      "L3": "z",
-      "R3": "x"
+      "L3": "-",
+      "R3": "RightShift"
    },
 
 	"console": {

@@ -7,49 +7,12 @@ import math
 from threading import Lock
 
 # Our own little support library
-from platforming import Player
+from platforming import Player, PlayerController
 from shaded_sprite import ColoredCox
 
 from pyglet.gl import *
 
 import input_mapper
-
-
-class PlayerController:
-
-  def __init__(self, p1):
-    self.p1 = p1
-
-  def on_input(self, controller, event, value):
-    if controller == "controller1":
-      self.move_player(self.p1, event, value)
-    elif controller == "controller2":
-      #self.move_player(self.p2, event, value)
-      pass
-    else:
-      if (event == "quit"):
-        pyglet.app.exit()
-      return
-
-
-  def move_player(self, player, event, value):
-    # Map dpad to the same thing as the analog axis
-    if (event == "dpad-left"):
-      event = "axis-X1"
-      value = -1 * value
-
-    if (event == "dpad-right"):
-      event = "axis-X1"
-      value = 1 * value
-
-    if (event == "axis-X1"):
-      # Dead zone
-      if (-0.1 <= value <= 0.1): value = 0
-      player.move(value)
-
-    if (event == "button-A"):
-      player.jump(value == 1)
-
 
 
 window = pyglet.window.Window()

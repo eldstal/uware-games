@@ -1,44 +1,39 @@
 #!/usr/bin/env python3
 
 import math
+import pyglet
 
+from physics import Entity
 
-class Player:
+class Player(Entity):
   def __init__(self, sprite):
     self.sprite = sprite
 
-    self.width = sprite.width
-    self.height = sprite.height
+    Entity.__init__(self, 0, 0, sprite.width, sprite.height, "Player")
 
     #
     # Instantaneous state
     #
-    self.x = 0
-    self.y = 0
 
     self.vx = 0
     self.vy = 0
 
     self.vx_target = 0    # When accelerating, this is the target velocity
 
-    self.bump_up    = False
-    self.bump_down  = False
-    self.bump_left  = False
-    self.bump_right = False
-
     self.jumping = False
     self.jump_strength = 0
 
 
     #
-    # Static parameters (tuning the player's movement
+    # Static parameters (tuning the player's movement)
     #
 
     self.ay = -2.5        # Gravity
-    self.ax_move = 8    # Run acceleration
-    self.ax_stop = 3    # Ground friction
-    self.ax_move_air = 4 # Air control
-    self.ax_stop_air = 1 # Stopping ability in air
+    self.vy_max_fall = -10 # Terminal velocity
+    self.ax_move = 8      # Run acceleration
+    self.ax_stop = 3      # Ground friction
+    self.ax_move_air = 4  # Air control
+    self.ax_stop_air = 1  # Stopping ability in air
 
     self.vx_max = 14
     self.vy_jump = 12
@@ -111,6 +106,7 @@ class Player:
     # Gravity
     if (not self.bump_down):
       self.vy += self.ay
+      self.vy = max(self.vy, self.vy_max_fall)
 
     self._jump()
     self._move()
@@ -150,6 +146,7 @@ class PlayerController:
   def on_input(self, controller, event, value):
     if controller == "controller1":
       self.move_player(self.p1, event, value)
+      pass
     elif controller == "controller2":
       #self.move_player(self.p2, event, value)
       pass
