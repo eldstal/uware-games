@@ -1,6 +1,6 @@
 {
 
-   "controller1": {
+   "controller3": {
       "device": "keyboard",
 
       "button-Y": "i",
@@ -22,7 +22,7 @@
       "R3": "x"
    },
 
-   "controller3": {
+   "controller1": {
       "device": "/dev/input/js0",
 
       "axis-X1": "ax0",
