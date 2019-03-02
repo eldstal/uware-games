@@ -14,10 +14,6 @@ class Player(Entity):
     #
     # Instantaneous state
     #
-
-    self.vx = 0
-    self.vy = 0
-
     self.vx_target = 0    # When accelerating, this is the target velocity
 
     self.jumping = False
@@ -35,7 +31,7 @@ class Player(Entity):
     self.ax_move_air = 4  # Air control
     self.ax_stop_air = 1  # Stopping ability in air
 
-    self.vx_max = 14
+    self.vx_max = 6
     self.vy_jump = 12
     self.jump_strength_max = 10   # Frames/ticks of jump push
 
@@ -46,6 +42,11 @@ class Player(Entity):
     return v
 
   def _jump(self):
+
+    # Bumped your head
+    if (self.bump_up):
+      self.jump_strength = 0
+
     # Player has held long enough for a maximum jump
     if (self.jump_strength == 0):
       self.jumping = False
@@ -99,6 +100,7 @@ class Player(Entity):
       self.vx = 0
     if (self.bump_right and self.vx > 0):
       self.vx = 0
+
 
 
   def tick(self, dt):

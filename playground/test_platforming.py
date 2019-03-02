@@ -24,11 +24,15 @@ def tick(dt):
 
 def make_world(window):
   world = [ ]
-  # Floor
+  # Border
   world += [ ColoredBlock(-32, -32, window.width+64, 40, None, "Floor") ]
   world += [ ColoredBlock(-32, -32, 40, window.height+64, None, "LeftWall") ]
   world += [ ColoredBlock(window.width-8, -32, 48, window.height+64, None, "RightWall") ]
   world += [ ColoredBlock(-32, window.height-8, window.width+64, 40, None, "Ceiling") ]
+
+  # Some boxes to jump and bump
+  world += [ ColoredBlock(100, 96, 300, 32, None, "box1") ]
+
   return world
 
 def collide_world(actor, world):
